@@ -17,25 +17,22 @@ connection_states = {
   }
 
 def handle_signal(*args, **kwargs):
-  #print "=== New signal ============"
-  #print "Len: ", len(args)
+  # args is a tuple with the data in the first field
+  arg = args[0]
+  if type(arg) == dbus.Dictionary:
+    for k in arg:
+      if k == "State":
+        state_changed(arg[k])
 
-  for arg in args:
-    #print "Len dict: ", len(arg)
-    if type(arg) == dbus.Dictionary:
-      for k in arg:
-        if k == "State":
-          state_changed(arg[k])
-        #print k, ":: ", arg[k]
 
 def state_changed(state):
-  #print type(state)
   print "State changed: ", connection_states[state]
   check_connections()
 
 def check_connections():
   bus = dbus.SystemBus()
   proxy = bus.get_object("org.freedesktop.NetworkManager", "/org/freedesktop/NetworkManager")
+
   # Get active connection state
   manager_prop_iface = dbus.Interface(proxy, "org.freedesktop.DBus.Properties")
   active = manager_prop_iface.Get("org.freedesktop.NetworkManager", "ActiveConnections")
@@ -71,9 +68,7 @@ if __name__ == '__main__':
     #traceback.print_exc()
     #sys.exit(1)
 
-  bus.add_signal_receiver(handle_signal, dbus_interface = "org.freedesktop.NetworkManager")
-  #bus.add_signal_receiver(handle_signal, dbus_interface="org.freedesktop.NetworkManager", signal_name="PropertiesChanged")
-  #bus.add_signal_receiver(handle_signal, dbus_interface="org.freedesktop.NetworkManager", message_keyword="ActiveConnections")
+  bus.add_signal_receiver(handle_signal, dbus_interface = "org.freedesktop.NetworkManager", message_keyword='dbus_message')
 
   loop = gobject.MainLoop()
   loop.run()
