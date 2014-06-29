@@ -4,41 +4,43 @@ import gobject
 import dbus
 import dbus.mainloop.glib
 
+# Copyed from include/NetworkManager.h
+connection_states = {
+   0: "Unknown",
+  10: "Asleep",
+  20: "Disconnected",
+  30: "Disconnecting",
+  40: "Connecting",
+  50: "Connected local",
+  60: "Connected site",
+  70: "Connected global",
+  }
+
 def handle_signal(*args, **kwargs):
-  print "=== New signal ============"
-  print "Len: ", len(args)
+  #print "=== New signal ============"
+  #print "Len: ", len(args)
 
   for arg in args:
-    print "Len dict: ", len(arg)
-    for k in arg:
-      print k, ":: ", arg[k]
+    #print "Len dict: ", len(arg)
+    if type(arg) == dbus.Dictionary:
+      for k in arg:
+        if k == "State":
+          state_changed(arg[k])
+        #print k, ":: ", arg[k]
 
+def state_changed(state):
+  #print type(state)
+  print "State changed: ", connection_states[state]
+  check_connections()
 
-  return
-  for arg in args:
-    print arg
-    if isinstance(arg, dbus.Dictionary):
-      for key in arg:
-        if key != "ActiveConnections":
-          continue
-        val = arg[key]
-        print type(val)
-        #print dir(val)
-        print key, "::: ",
-        for e in val:
-          print e,
-        print
-        #check_connections(val)
-        #print val
-    else:
-      print arg
-
-def check_connections(connections):
+def check_connections():
+  bus = dbus.SystemBus()
+  proxy = bus.get_object("org.freedesktop.NetworkManager", "/org/freedesktop/NetworkManager")
   # Get active connection state
   manager_prop_iface = dbus.Interface(proxy, "org.freedesktop.DBus.Properties")
   active = manager_prop_iface.Get("org.freedesktop.NetworkManager", "ActiveConnections")
   for c in active:
-    print "Connection: ", c
+    #print "Connection: ", c
     ac_proxy = bus.get_object("org.freedesktop.NetworkManager", c)
     prop_iface = dbus.Interface(ac_proxy, "org.freedesktop.DBus.Properties")
     state = prop_iface.Get("org.freedesktop.NetworkManager.Connection.Active", "State")
