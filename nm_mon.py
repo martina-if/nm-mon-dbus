@@ -5,7 +5,7 @@ import dbus
 from dbus.mainloop.glib import DBusGMainLoop
 DBusGMainLoop(set_as_default=True)
 
-# Copyed from include/NetworkManager.h
+# Copied from include/NetworkManager.h
 connection_states = {
    0: "Unknown",
   10: "Asleep",
@@ -17,52 +17,55 @@ connection_states = {
   70: "Connected global",
   }
 
-def handle_signal(*args, **kwargs):
-  # args is a tuple with the data in the first field
-  arg = args[0]
-  if type(arg) == dbus.Dictionary:
-    for k in arg:
-      if k == "State":
-        state_changed(arg[k])
+class NetMonitor(object):
 
+  def __init__(self):
+    # Set up the bus
+    self.bus = dbus.SystemBus()
+    self.bus.add_signal_receiver(self.signal_handler, dbus_interface = "org.freedesktop.NetworkManager")
+    # Set up the main proxy and interface for network manager properties
+    nm_proxy = self.bus.get_object("org.freedesktop.NetworkManager", "/org/freedesktop/NetworkManager")
+    self.nm_iface = dbus.Interface(nm_proxy, "org.freedesktop.DBus.Properties")
 
-def state_changed(state):
-  print "State changed: ", connection_states[state]
-  check_connections()
+  def signal_handler(self, *args, **kwargs):
+    arg = args[0] # Only first field of the tuple has info
+    if type(arg) == dbus.Dictionary:
+      for k in arg:
+        if k == "State":
+          self.state_changed(arg[k])
 
-def check_connections():
-  bus = dbus.SystemBus()
-  proxy = bus.get_object("org.freedesktop.NetworkManager", "/org/freedesktop/NetworkManager")
+  def state_changed(self, state):
+    print "State changed: ", connection_states[state]
+    self.check_connections()
 
-  # Get active connection state
-  manager_prop_iface = dbus.Interface(proxy, "org.freedesktop.DBus.Properties")
-  active = manager_prop_iface.Get("org.freedesktop.NetworkManager", "ActiveConnections")
-  for c in active:
-    #print "Connection: ", c
-    ac_proxy = bus.get_object("org.freedesktop.NetworkManager", c)
-    prop_iface = dbus.Interface(ac_proxy, "org.freedesktop.DBus.Properties")
-    state = prop_iface.Get("org.freedesktop.NetworkManager.Connection.Active", "State")
+  def check_connections(self):
+    # Get active connection state
+    active = self.nm_iface.Get("org.freedesktop.NetworkManager", "ActiveConnections")
 
-    # Connections in NM are a collection of settings that describe everything
-    # needed to connect to a specific network.  Lets get those details so we
-    # can find the user-readable name of the connection.
-    con_path = prop_iface.Get("org.freedesktop.NetworkManager.Connection.Active", "Connection")
-    service_proxy = bus.get_object("org.freedesktop.NetworkManager", con_path)
-    con_iface = dbus.Interface(service_proxy, "org.freedesktop.NetworkManager.Settings.Connection")
-    con_details = con_iface.GetSettings()
-    con_name = con_details['connection']['id']
+    for c in active:
+      #print "Connection: ", c
+      active_con_proxy = self.bus.get_object("org.freedesktop.NetworkManager", c)
+      properties_iface = dbus.Interface(active_con_proxy, "org.freedesktop.DBus.Properties")
+      state = properties_iface.Get("org.freedesktop.NetworkManager.Connection.Active", "State")
 
-    if state == 2:   # activated
-      print "Connection '%s' is activated" % con_name
-    else:
-      print "Connection '%s' is activating" % con_name
+      # Connections in NM are a collection of settings that describe everything
+      # needed to connect to a specific network.  Lets get those details so we
+      # can find the user-readable name of the connection.
+      connection_path = properties_iface.Get("org.freedesktop.NetworkManager.Connection.Active", "Connection")
+      service_proxy = self.bus.get_object("org.freedesktop.NetworkManager", connection_path)
+      connection_iface = dbus.Interface(service_proxy, "org.freedesktop.NetworkManager.Settings.Connection")
+      connection_details = connection_iface.GetSettings()
+      connection_name = connection_details['connection']['id']
+
+      if state == 2:   # activated, see include/NetworkManager.h
+        print "Connection '%s' is activated" % connection_name
+      else:
+        print "Connection '%s' is activating" % connection_name
 
 
 if __name__ == '__main__':
 
-  bus = dbus.SystemBus()
-  bus.add_signal_receiver(handle_signal, dbus_interface = "org.freedesktop.NetworkManager", message_keyword='dbus_message')
-
+  netmon = NetMonitor()
   loop = gobject.MainLoop()
   loop.run()
 
