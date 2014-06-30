@@ -39,11 +39,11 @@ class NetMonitor(object):
     self.check_connections()
 
   def check_connections(self):
-    # Get active connection state
+    # Get the list of active connections
     active = self.nm_iface.Get("org.freedesktop.NetworkManager", "ActiveConnections")
 
     for c in active:
-      #print "Connection: ", c
+      # Get the state of this active connection
       active_con_proxy = self.bus.get_object("org.freedesktop.NetworkManager", c)
       properties_iface = dbus.Interface(active_con_proxy, "org.freedesktop.DBus.Properties")
       state = properties_iface.Get("org.freedesktop.NetworkManager.Connection.Active", "State")
