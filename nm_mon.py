@@ -6,7 +6,7 @@ from dbus.mainloop.glib import DBusGMainLoop
 DBusGMainLoop(set_as_default=True)
 
 # Copied from include/NetworkManager.h
-connection_states = {
+nm_states = {
    0: "Unknown",
   10: "Asleep",
   20: "Disconnected",
@@ -15,7 +15,14 @@ connection_states = {
   50: "Connected local",
   60: "Connected site",
   70: "Connected global",
-  }
+}
+
+connection_states = {
+  0: "Unknown",
+  1: "Activating",
+  2: "Activated",
+  3: "Deactivated",
+}
 
 class NetMonitor(object):
 
@@ -35,7 +42,7 @@ class NetMonitor(object):
           self.state_changed(arg[k])
 
   def state_changed(self, state):
-    print "State changed: ", connection_states[state]
+    print "State changed: ", nm_states[state]
     self.check_connections()
 
   def check_connections(self):
@@ -57,10 +64,7 @@ class NetMonitor(object):
       connection_details = connection_iface.GetSettings()
       connection_name = connection_details['connection']['id']
 
-      if state == 2:   # activated, see include/NetworkManager.h
-        print "Connection '%s' is activated" % connection_name
-      else:
-        print "Connection '%s' is activating" % connection_name
+      print "Connection '%s' is %s" % (connection_name, connection_states[state])
 
 
 if __name__ == '__main__':
