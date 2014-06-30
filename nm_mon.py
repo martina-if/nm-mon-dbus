@@ -2,7 +2,8 @@ import sys
 import traceback
 import gobject
 import dbus
-import dbus.mainloop.glib
+from dbus.mainloop.glib import DBusGMainLoop
+DBusGMainLoop(set_as_default=True)
 
 # Copyed from include/NetworkManager.h
 connection_states = {
@@ -58,16 +59,8 @@ def check_connections():
 
 
 if __name__ == '__main__':
-  dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
 
   bus = dbus.SystemBus()
-  #try:
-    #object  = bus.get_object("org.freedesktop.NetworkManager","/org/freedesktop/NetworkManager")
-    #object.connect_to_signal("HelloSignal", hello_signal_handler, dbus_interface="com.example.TestService", arg0="Hello")
-  #except dbus.DBusException:
-    #traceback.print_exc()
-    #sys.exit(1)
-
   bus.add_signal_receiver(handle_signal, dbus_interface = "org.freedesktop.NetworkManager", message_keyword='dbus_message')
 
   loop = gobject.MainLoop()
