@@ -1,6 +1,6 @@
 import sys
-import traceback
 from xcb import Xserver,XError
+import logging as log
 import gobject
 import dbus
 from dbus.mainloop.glib import DBusGMainLoop
@@ -41,7 +41,7 @@ class NetMonitor(object):
       self.xserver.connect()
       self.xserver.set_screen()
     except XError as e:
-      print e
+      log.error(e)
 
   def signal_handler(self, *args, **kwargs):
     arg = args[0] # Only first field of the tuple has info
@@ -51,7 +51,7 @@ class NetMonitor(object):
           self.state_changed(arg[k])
 
   def state_changed(self, state):
-    print "State changed: ", nm_states[state]
+    log.debug("State changed: "+ nm_states[state])
     self.check_connections()
 
   def check_connections(self):
@@ -74,7 +74,7 @@ class NetMonitor(object):
       connection_name = connection_details['connection']['id']
       connection_status = connection_states[state]
 
-      print "Connection '%s' is %s" % (connection_name, connection_status)
+      log.debug("Connection '%s' is %s" % (connection_name, connection_status))
 
       # Set wm name with the name of the connection when it activates
       try:

@@ -1,4 +1,5 @@
 from ctypes import *
+import logging as log
 #lib = cdll.LoadLibrary('./wm_name.so')
 #lib = CDLL('./libwselfmname.so', mode=RTLD_GLOBAL)
 
@@ -10,13 +11,13 @@ class Xserver(object):
     self.xlib = CDLL('./libwmname.so', mode=RTLD_GLOBAL)
 
   def connect(self):
-    print "Connecting"
+    log.debug("Connecting")
     self.connection = self.xlib.connect_x()
     if self.connection == 0:
       raise XError("Error while trying to connect")
 
   def disconnect(self):
-    print "Disconnecting"
+    log.debug("Disconnecting")
     res = self.xlib.disconnect_x(self.connection)
     if res != 0:
       raise XError("Error trying to disconnect")
@@ -27,14 +28,10 @@ class Xserver(object):
       raise XError("Error trying to set screen")
 
   def set_wm_name(self, text):
-    print "Setting name: ", text
+    log.debug("Setting name: "+ text)
     res = self.xlib.set_wm_name(self.connection, text)
     if res != 0:
       raise XError("Error trying to set name: " + res)
-
-  def myprint(self, text):
-    print "Trying to print..."
-    self.xlib.myprint(text)
 
 class XError(Exception):
   def __init__(self, msg):
@@ -48,5 +45,4 @@ if __name__ == '__main__':
   x.connect()
   x.set_screen()
   x.set_wm_name("HOLA\0")
-  x.myprint("hey")
   x.disconnect()
