@@ -1,5 +1,6 @@
 import sys
 import traceback
+from xcb import Xserver,XError
 import gobject
 import dbus
 from dbus.mainloop.glib import DBusGMainLoop
@@ -34,6 +35,14 @@ class NetMonitor(object):
     nm_proxy = self.bus.get_object("org.freedesktop.NetworkManager", "/org/freedesktop/NetworkManager")
     self.nm_iface = dbus.Interface(nm_proxy, "org.freedesktop.DBus.Properties")
 
+    # X client
+    try:
+      self.xserver = Xserver()
+      self.xserver.connect()
+      self.xserver.set_screen()
+    except XError as e:
+      print e
+
   def signal_handler(self, *args, **kwargs):
     arg = args[0] # Only first field of the tuple has info
     if type(arg) == dbus.Dictionary:
@@ -63,8 +72,16 @@ class NetMonitor(object):
       connection_iface = dbus.Interface(service_proxy, "org.freedesktop.NetworkManager.Settings.Connection")
       connection_details = connection_iface.GetSettings()
       connection_name = connection_details['connection']['id']
+      connection_status = connection_states[state]
 
-      print "Connection '%s' is %s" % (connection_name, connection_states[state])
+      print "Connection '%s' is %s" % (connection_name, connection_status)
+
+      # Set wm name with the name of the connection when it activates
+      try:
+        if connection_status == "Activated":
+          self.xserver.set_wm_name(str(connection_name))
+      except XError as e:
+        print e
 
 
 if __name__ == '__main__':

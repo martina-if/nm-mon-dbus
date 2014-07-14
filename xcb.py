@@ -13,29 +13,35 @@ class Xserver(object):
     print "Connecting"
     self.connection = self.xlib.connect_x()
     if self.connection == 0:
-      print "Error while trying to connect"
+      raise XError("Error while trying to connect")
 
   def disconnect(self):
     print "Disconnecting"
     res = self.xlib.disconnect_x(self.connection)
     if res != 0:
-      print "Error trying to disconnect"
+      raise XError("Error trying to disconnect")
 
   def set_screen(self):
     res = self.xlib.set_screen(self.connection)
     if res != 0:
-      print "Error trying to set screen"
+      raise XError("Error trying to set screen")
 
   def set_wm_name(self, text):
-    print "Setting name"
+    print "Setting name: ", text
     res = self.xlib.set_wm_name(self.connection, text)
     if res != 0:
-      print "Error trying to set name: ", res
+      raise XError("Error trying to set name: " + res)
 
   def myprint(self, text):
     print "Trying to print..."
     self.xlib.myprint(text)
 
+class XError(Exception):
+  def __init__(self, msg):
+    self.msg = "Xerror: " + msg
+
+  def __str__(self):
+    return repr(self.msg)
 
 if __name__ == '__main__':
   x = Xserver()
